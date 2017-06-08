@@ -1,7 +1,5 @@
 package com.adobe.mcdp.campaign;
 
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.Serializable;
 import java.sql.Connection;
@@ -18,34 +16,24 @@ import java.util.logging.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.ForeachFunction;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.MapFunction;
-import org.apache.spark.api.java.function.MapPartitionsFunction;
-
-import scala.collection.JavaConverters;
-import scala.Function1;
 import scala.runtime.AbstractFunction1;
-import scala.runtime.BoxedUnit;
 
 //https://unbareablelightness.tumblr.com/post/140531306084/writing-a-spark-dataframe-to-mysql-tips-and
 public class Convey implements Serializable {
 
-	private static final String USERS_JSON = "/Users/thuynh/Downloads/users.json";
-	private static final String ADDRESSES_JSON = "/Users/thuynh/Downloads/addresses.json";
+	private static final String USERS_JSON = "/Users/thuynh/Work/onboard/spark-convey/src/resources/users.json";
+	private static final String ADDRESSES_JSON = "/Users/thuynh/Work/onboard/spark-convey/src/resources/addresses.json";
 
 	private static final String MYSQL_PWD = "expertuser123";
 	private static final String MYSQL_CONNECTION_URL = "jdbc:sqlserver://cob-sql.database.windows.net:1433;database=cob-sql-dw;user=sqladmin@cob-sql;password=Pa$$w0rd;encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net;loginTimeout=30;";
@@ -219,12 +207,12 @@ public class Convey implements Serializable {
 		}
 	}
 
-	private static void writeToDB1(final Dataset<Row> dataset) {
+	private static void printDataSet1(final Dataset<Row> dataset) {
 		dataset.foreach((ForeachFunction<Row>) row -> System.out.println(row));
 
 	}
 
-	private static void writeToDB2(final Dataset<Row> dataset) {
+	private static void printDataSet(final Dataset<Row> dataset) {
 		StructType struct = dataset.schema();
 		StructField fields[] = struct.fields();// [StructField(_id,StringType,true),
 												// StructField(age,LongType,true),
@@ -266,7 +254,7 @@ public class Convey implements Serializable {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static void writeToDB3(final Dataset<Row> dataset) {
+	private static void upsertToDB(final Dataset<Row> dataset) {
 		SerializableFunction1 sf1 = new SerializableFunction1<scala.collection.Iterator<GenericRowWithSchema>, 
 				scala.collection.Iterator<Row>>() {
 			List<Row> retVal = new ArrayList<Row>();
@@ -293,20 +281,7 @@ public class Convey implements Serializable {
     }
 
 	
-	private static void writeToDB4(final Dataset<Row> dataset) {
-		SerializableFunction1 sf1 = new SerializableFunction1<Row,BoxedUnit>(){
-	        @Override
-	        public BoxedUnit apply(Row row) {
-	            System.out.println(row.get(0));
-	            return BoxedUnit.UNIT;
-	        }
-		};
-
-		
-  		//Encoder<BoxedUnit> encoder = Encoders..bean(BoxedUnit.class);
-    	dataset.coalesce(NUMBER_OF_WORKERS).mapPartitions(sf1, null);
-
-    }
+	
 	private static void writeToDB(final Dataset<User> dataset) {
 		/*
 		 * A common naive mistake is to open a connection on the Spark driver
@@ -418,13 +393,13 @@ public class Convey implements Serializable {
 		// Choose one of 2 options depending on your requirement (Not both).
 		Properties connectionProperties = new Properties();
 		// connectionProperties.put("isolationLevel", "READ_COMMITTED");
-		// df.write().partitionBy("email").saveAsTable("users");
+		//df.write().partitionBy("email").saveAsTable("users");
 		// Saving data to a JDBC source
-		/*
-		 * dfUsers.write(). mode(SaveMode.Append). jdbc(MYSQL_CONNECTION_URL,
-		 * "Users", connectionProperties);
-		 */
+		
+		dfUsers.write(). mode(SaveMode.Append). jdbc(MYSQL_CONNECTION_URL,
+		 "Users", connectionProperties);
+		 
 
-		writeToDB3(spark.read().json(USERS_JSON));
+		//writeToDB3(spark.read().json(USERS_JSON));
 	}
 }
